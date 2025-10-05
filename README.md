@@ -1,6 +1,10 @@
-# E-commerce API Gateway Demo
+# API Gateway Demo
 
 This demo demonstrates the API Gateway pattern using Spring Cloud Gateway with an e-commerce microservices architecture. It builds upon the [eureka-demo](../eureka-demo) by adding a unified entry point that provides routing, circuit breaking, and cross-cutting concerns.
+
+This is from my medium article **API Gateway with Spring Cloud**
+
+This article and others from me can be found at https://medium.com/@brianenochson
 
 ## Architecture Overview
 
@@ -34,7 +38,6 @@ Backend Microservices
 
 ### ✅ Integration Benefits
 - Load balancing across multiple service instances
-- Centralized logging and monitoring
 - Simplified client integration
 - Service abstraction and versioning support
 
@@ -103,39 +106,6 @@ curl -X PUT http://localhost:8080/api/inventory/1?quantity=150
 curl http://localhost:8080/api/products/health
 ```
 
-## Architecture Comparison
-
-### Before Gateway (Direct Service Access)
-
-Problems:
-- Multiple endpoints for clients to manage
-- Client-side load balancing required
-- Duplicated CORS, authentication, logging across services
-- Service topology exposed to clients
-- Difficult to evolve service structure
-
-```javascript
-// Client needs to know all service locations
-const services = {
-  products: 'http://service1:8081',
-  inventory: 'http://service2:8082'
-};
-```
-
-### After Gateway (Unified Access)
-
-Benefits:
-- Single endpoint: `http://gateway:8080`
-- Centralized cross-cutting concerns
-- Service discovery integration
-- Circuit breakers and fallbacks
-- Request/response transformation capability
-
-```javascript
-// Client only needs gateway location
-const API_GATEWAY = 'http://gateway:8080';
-```
-
 ## Gateway Configuration Highlights
 
 ### Dynamic Routing with Service Discovery
@@ -165,12 +135,44 @@ routes:
           fallbackUri: forward:/fallback/products
 ```
 
-### Global Request Enhancement
+### Default Filters (Global Request Enhancement)
+
+Default filters are applied to all routes automatically, providing consistent cross-cutting functionality:
 
 ```yaml
 default-filters:
-  - AddRequestHeader=X-Gateway-Name, ChargeRoute-Gateway
-  - AddRequestHeader=X-Request-Timestamp, #{T(java.time.Instant).now().toString()}
+  - name: DedupeResponseHeader
+    args:
+      name: Access-Control-Allow-Origin
+      strategy: RETAIN_FIRST
+  - name: AddRequestHeader
+    args:
+      name: X-Gateway-Name
+      value: API-Gateway
+```
+
+**What these filters do:**
+- `DedupeResponseHeader`: Removes duplicate CORS headers that can occur when both the gateway and backend services set them
+- `AddRequestHeader`: Adds gateway identification to every request for debugging and monitoring
+
+**Additional commonly used default filters:**
+```yaml
+# Example: Add timestamp to all requests
+- name: AddRequestHeader
+  args:
+    name: X-Request-Timestamp
+    value: "#{T(java.time.Instant).now().toString()}"
+
+# Example: Remove sensitive headers from responses
+- name: RemoveResponseHeader
+  args:
+    name: Server
+
+# Example: Add response headers for security
+- name: AddResponseHeader
+  args:
+    name: X-Frame-Options
+    value: DENY
 ```
 
 ## Testing Circuit Breakers
@@ -206,25 +208,7 @@ for i in {1..3}; do
 done
 ```
 
-## Monitoring and Metrics
-
-### Gateway Endpoints
-
-```bash
-# Gateway health
-curl http://localhost:8080/actuator/health
-
-# Route information
-curl http://localhost:8080/actuator/gateway/routes
-
-# Global filters
-curl http://localhost:8080/actuator/gateway/globalfilters
-
-# Route filters
-curl http://localhost:8080/actuator/gateway/routefilters
-```
-
-### Service Discovery
+## Service Discovery
 
 ```bash
 # Eureka apps
@@ -234,78 +218,7 @@ curl http://localhost:8761/eureka/apps
 curl http://localhost:8761/eureka/apps/PRODUCT-SERVICE
 ```
 
-## Customization Examples
-
-### Adding Rate Limiting
-
-Add Redis and configure rate limiting:
-
-```yaml
-# Add to docker-compose.yml
-redis:
-  image: redis:alpine
-  ports:
-    - "6379:6379"
-
-# Add to gateway routes
-filters:
-  - name: RequestRateLimiter
-    args:
-      redis-rate-limiter.replenishRate: 10
-      redis-rate-limiter.burstCapacity: 20
-```
-
-### Custom Filters
-
-The demo includes a logging filter example:
-
-```java
-@Component
-public class LoggingGlobalFilter implements GlobalFilter, Ordered {
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // Add request ID and log requests
-        // See: api-gateway/src/main/java/com/chargeroute/gateway/filter/
-    }
-}
-```
-
 ## Troubleshooting
-
-### Gateway Not Starting
-
-```bash
-# Check Eureka connectivity
-curl http://localhost:8761/actuator/health
-
-# Check Docker networks
-docker network ls
-docker network inspect api-gateway-demo_chargeroute-network
-```
-
-### Services Not Registering
-
-```bash
-# Check service logs
-docker-compose logs product-service
-docker-compose logs eureka-server
-
-# Verify Eureka configuration
-curl http://localhost:8761/eureka/apps
-```
-
-### Routes Not Working
-
-```bash
-# Check configured routes
-curl http://localhost:8080/actuator/gateway/routes
-
-# Test service directly
-docker-compose exec product-service curl http://localhost:8080/actuator/health
-
-# Check route filters
-curl http://localhost:8080/actuator/gateway/routefilters
-```
 
 ## Project Structure
 
@@ -331,33 +244,6 @@ api-gateway-demo/
 └── README.md              # This file
 ```
 
-## Key Benefits Demonstrated
-
-1. **Simplified Client Integration**: One endpoint instead of multiple
-2. **Centralized Cross-Cutting Concerns**: CORS, logging, circuit breaking
-3. **Service Discovery Integration**: Automatic routing with Eureka
-4. **Resilience**: Circuit breakers prevent cascade failures
-5. **Operational Visibility**: Centralized monitoring and metrics
-6. **Evolution Support**: Services can change without client updates
-
-## Next Steps
-
-This demo provides the foundation for:
-
-- **Authentication**: Add JWT validation at the gateway
-- **Rate Limiting**: Implement Redis-backed request throttling
-- **API Versioning**: Support multiple API versions simultaneously  
-- **Request Transformation**: Modify requests/responses in transit
-- **WebSocket Support**: Enable real-time communication through the gateway
-- **Advanced Routing**: Geographic, weighted, or feature-flag based routing
-
-## Learning Resources
-
-- [Spring Cloud Gateway Documentation](https://spring.io/projects/spring-cloud-gateway)
-- [Circuit Breaker Pattern](https://martinfowler.com/bliki/CircuitBreaker.html)
-- [API Gateway Pattern](https://microservices.io/patterns/apigateway.html)
-- [Project Reactor (Reactive Programming)](https://projectreactor.io/)
-
 ---
 
-*This demo is part of the microservices learning series. Previous: [eureka-demo](../eureka-demo)*
+*This demo is part of the microservices learning series as preview to my upcoming book Architecting Microservices with Spring Boot and Spring Cloud with Apress. Previous: [eureka-demo](https://github.com/brianeno//eureka-demo)*
