@@ -1,0 +1,61 @@
+services:
+  eureka-server:
+    build: ./eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - api-gateway-demo-network
+
+  product-service:
+    build: ./product-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=0
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+    networks:
+      - api-gateway-demo-network
+
+  inventory-service:
+    build: ./inventory-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=0
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+    networks:
+      - api-gateway-demo-network
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - api-gateway-demo-network
+
+networks:
+  api-gateway-demo-network:
+    driver: bridge

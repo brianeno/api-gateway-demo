@@ -1,0 +1,109 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      # Enable automatic service discovery routing
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+      # Default filters applied to all routes
+      default-filters:
+        - name: DedupeResponseHeader
+          args:
+            name: Access-Control-Allow-Origin
+            strategy: RETAIN_FIRST
+        - name: AddRequestHeader
+          args:
+            name: X-Gateway-Name
+            value: API-Gateway
+
+      # Global CORS configuration
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"  # React frontend
+              - "http://localhost:8080"  # Local testing
+            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+      # Custom route definitions
+      routes:
+        # Product Service Route
+        - id: product-service
+          uri: lb://product-service
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - name: StripPrefix
+              args:
+                parts: 1
+            - name: CircuitBreaker
+              args:
+                name: productService
+                fallbackUri: forward:/fallback/products
+            - name: AddRequestHeader
+              args:
+                name: X-Service-Route
+                value: product-service
+
+        # Inventory Service Route
+        - id: inventory-service
+          uri: lb://inventory-service
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - name: StripPrefix
+              args:
+                parts: 1
+            - name: CircuitBreaker
+              args:
+                name: inventoryService
+                fallbackUri: forward:/fallback/inventory
+            - name: AddRequestHeader
+              args:
+                name: X-Service-Route
+                value: inventory-service
+
+# Eureka Client Configuration
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}}
+    registerWithEureka: true
+    fetchRegistry: true
+    registryFetchIntervalSeconds: 30
+  instance:
+    instanceId: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    preferIpAddress: true
+    leaseRenewalIntervalInSeconds: 30
+    leaseExpirationDurationInSeconds: 90
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# Logging
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.example.apigateway: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"

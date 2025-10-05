@@ -1,0 +1,35 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: api-gateway-test
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      routes:
+        - id: test-route
+          uri: http://httpbin.org
+          predicates:
+            - Path=/test/**
+
+# Disable Eureka for testing
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# Disable management endpoints for testing
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    org.springframework.cloud.gateway: WARN
+    com.chargeroute.gateway: DEBUG
