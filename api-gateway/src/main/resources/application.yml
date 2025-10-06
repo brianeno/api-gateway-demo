@@ -6,72 +6,72 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      # Enable automatic service discovery routing
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
 
       # Default filters applied to all routes
-      default-filters:
-        - name: DedupeResponseHeader
-          args:
-            name: Access-Control-Allow-Origin
-            strategy: RETAIN_FIRST
-        - name: AddRequestHeader
-          args:
-            name: X-Gateway-Name
-            value: API-Gateway
-
-      # Global CORS configuration
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins:
-              - "http://localhost:3000"  # React frontend
-              - "http://localhost:8080"  # Local testing
-            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
-
-      # Custom route definitions
-      routes:
-        # Product Service Route
-        - id: product-service
-          uri: lb://product-service
-          predicates:
-            - Path=/api/products/**
-          filters:
-            - name: StripPrefix
+          default-filters:
+            - name: DedupeResponseHeader
               args:
-                parts: 1
-            - name: CircuitBreaker
-              args:
-                name: productService
-                fallbackUri: forward:/fallback/products
+                name: Access-Control-Allow-Origin
+                strategy: RETAIN_FIRST
             - name: AddRequestHeader
               args:
-                name: X-Service-Route
-                value: product-service
+                name: X-Gateway-Name
+                value: API-Gateway
 
-        # Inventory Service Route
-        - id: inventory-service
-          uri: lb://inventory-service
-          predicates:
-            - Path=/api/inventory/**
-          filters:
-            - name: StripPrefix
-              args:
-                parts: 1
-            - name: CircuitBreaker
-              args:
-                name: inventoryService
-                fallbackUri: forward:/fallback/inventory
-            - name: AddRequestHeader
-              args:
-                name: X-Service-Route
-                value: inventory-service
+          # Global CORS configuration
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "http://localhost:3000"  # React frontend
+                  - "http://localhost:8080"  # Local testing
+                allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
+
+          # Custom route definitions
+          routes:
+            # Product Service Route
+            - id: product-service
+              uri: lb://product-service
+              predicates:
+                - Path=/api/products/**
+              filters:
+                - name: StripPrefix
+                  args:
+                    parts: 1
+                - name: CircuitBreaker
+                  args:
+                    name: productService
+                    fallbackUri: forward:/fallback/products
+                - name: AddRequestHeader
+                  args:
+                    name: X-Service-Route
+                    value: product-service
+
+            # Inventory Service Route
+            - id: inventory-service
+              uri: lb://inventory-service
+              predicates:
+                - Path=/api/inventory/**
+              filters:
+                - name: StripPrefix
+                  args:
+                    parts: 1
+                - name: CircuitBreaker
+                  args:
+                    name: inventoryService
+                    fallbackUri: forward:/fallback/inventory
+                - name: AddRequestHeader
+                  args:
+                    name: X-Service-Route
+                    value: inventory-service
 
 # Eureka Client Configuration
 eureka:
