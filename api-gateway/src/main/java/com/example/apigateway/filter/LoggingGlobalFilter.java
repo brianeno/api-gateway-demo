@@ -1,5 +1,6 @@
 package com.example.apigateway.filter;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -12,17 +13,16 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class LoggingGlobalFilter implements GlobalFilter, Ordered {
-
-    private static final Logger logger = LoggerFactory.getLogger(LoggingGlobalFilter.class);
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String requestId = UUID.randomUUID().toString();
 
-        logger.info("Incoming request: {} {} - Request ID: {}",
+        log.info("Incoming request: {} {} - Request ID: {}",
                 request.getMethod(),
                 request.getURI(),
                 requestId);
@@ -37,7 +37,7 @@ public class LoggingGlobalFilter implements GlobalFilter, Ordered {
         return chain.filter(exchange.mutate().request(modifiedRequest).build())
                 .then(Mono.fromRunnable(() -> {
                     long duration = System.currentTimeMillis() - startTime;
-                    logger.info("Request {} completed in {} ms with status {}",
+                    log.info("Request {} completed in {} ms with status {}",
                             requestId,
                             duration,
                             exchange.getResponse().getStatusCode());

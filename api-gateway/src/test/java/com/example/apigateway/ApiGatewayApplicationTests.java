@@ -9,7 +9,7 @@ import org.springframework.test.context.TestPropertySource;
     "eureka.client.enabled=false",
     "eureka.client.register-with-eureka=false", 
     "eureka.client.fetch-registry=false",
-    "spring.cloud.gateway.discovery.locator.enabled=false",
+    "spring.cloud.gateway.server.webflux.discovery.locator.enabled=false",
     "spring.cloud.service-registry.auto-registration.enabled=false"
 })
 class ApiGatewayApplicationTests {

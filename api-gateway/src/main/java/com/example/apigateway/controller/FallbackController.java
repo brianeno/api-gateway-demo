@@ -1,7 +1,6 @@
 package com.example.apigateway.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,15 +12,14 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/fallback")
 public class FallbackController {
 
-    private static final Logger logger = LoggerFactory.getLogger(FallbackController.class);
-
     @GetMapping("/products/**")
     public Mono<ResponseEntity<Map<String, Object>>> productServiceFallback() {
-        logger.warn("Product service circuit breaker activated - returning fallback response");
+        log.warn("Product service circuit breaker activated - returning fallback response");
 
         return Mono.just(ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -36,7 +34,7 @@ public class FallbackController {
 
     @RequestMapping(value = "/inventory/**", method = {RequestMethod.GET, RequestMethod.PUT})
     public Mono<ResponseEntity<Map<String, Object>>> inventoryServiceFallback() {
-        logger.warn("Inventory service circuit breaker activated - returning fallback response");
+        log.warn("Inventory service circuit breaker activated - returning fallback response");
 
         return Mono.just(ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)

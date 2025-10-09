@@ -12,7 +12,7 @@ spring:
             locator:
               enabled: true
 
-      # Default filters applied to all routes
+          # Default filters applied to all routes
           default-filters:
             - name: DedupeResponseHeader
               args:
